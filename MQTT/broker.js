@@ -17,3 +17,7 @@ const authenticate = (client, _username, _password, callback) => {
     if(authorized) client.user == username;
     callback(null, authorized);
 }
+
+broker.on('published', (packet) => { 
+    console.log(packet);
+})
