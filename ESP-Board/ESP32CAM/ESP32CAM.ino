@@ -3,42 +3,30 @@
 #include "soc/rtc_cntl_reg.h"
 #include <WiFi.h>
 #include <PubSubClient.h>
-
-// Select camera model
-//#define CAMERA_MODEL_WROVER_KIT // Has PSRAM
-//#define CAMERA_MODEL_ESP_EYE // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_PSRAM // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_V2_PSRAM // M5Camera version B Has PSRAM
-//#define CAMERA_MODEL_M5STACK_WIDE // Has PSRAM
-//#define CAMERA_MODEL_M5STACK_ESP32CAM // No PSRAM
-#define CAMERA_MODEL_AI_THINKER // Has PSRAM
-//#define CAMERA_MODEL_TTGO_T_JOURNAL // No PSRAM
-
+#define CAMERA_MODEL_AI_THINKER         
 #include "camera_pins.h"
 
-unsigned long timer1;
-unsigned long timer2;
-int coolDownTakePicture = 0;
-int coolDownBell = 0;
+unsigned long timer1;                       // timer 1
+unsigned long timer2;                       // timer 2
+int coolDownTakePicture = 0;                // หน่วงเวลาในการถ่ายภาพครั้งถัดไป
+int coolDownBell = 0;                       // หน่วงเวลาในการทำงานครั้งถัดไป 
 
 // Flash
 #define LED_BUILTIN 4
-bool flash;
+bool flash;                                 // ไฟ flash
+
 // WIFI
-const char *ssid = "Chon";
-const char *password = "0837224629";
+const char *ssid = "Chon";                  // ssid WIFI
+const char *password = "0837224629";        // password WIFI
 
 // MQTT
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
 
 // MQTT config
-const char *mqttServer = "192.168.1.150";
-const int mqttPort = 1883;
-const char *topic_PHOTO = "SMILE";
-const char *topic_PUBLISH = "PICTURE";
-const char *topic_FLASH = "FLASH";
-const int MAX_PAYLOAD = 60000;
+const char *mqttServer = "192.168.1.150";   // mqtt server host
+const int mqttPort = 1883;                  // mqtt server port
+const int MAX_PAYLOAD = 60000;              // mqtt max patload
 
 void startCameraServer();
 
@@ -57,18 +45,9 @@ void callback(char *topic, byte *message, unsigned int length)
 
   Serial.println();
 
-  if (String(topic) == "light1")
+  if (String(topic) == "camera/capture")     // เมื่อมี topic "camera/capture" เข้ามา
   {
-    Serial.println("light1");
-
-    if (messageTemp == "on")
-      digitalWrite(14, HIGH);
-    else
-      digitalWrite(14, LOW);
-  }
-  else if (String(topic) == "camera/capture")
-  {
-    take_picture();
+    take_picture();                          // capture face
   }
 }
 
@@ -76,7 +55,7 @@ void connectWiFi()
 {
   Serial.print("connecting to ");
 
-  WiFi.begin(ssid, password);
+  WiFi.begin(ssid, password);                // connect WIFI 
 
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
@@ -88,10 +67,10 @@ void connectWiFi()
   }
 }
 
-void setupMQTT()
+void setupMQTT()                             
 {
-  mqttClient.setServer(mqttServer, mqttPort);
-  mqttClient.setCallback(callback);
+  mqttClient.setServer(mqttServer, mqttPort); // connect MQTT Broker
+  mqttClient.setCallback(callback);           // subscriber topic
 }
 
 void reconnect()
@@ -137,33 +116,6 @@ void take_picture()
   esp_camera_fb_return(fb); // must be used to free the memory allocated by esp_camera_fb_get().
 }
 
-void set_flash()
-{
-  flash = !flash;
-  Serial.print("Setting flash to ");
-  Serial.println(flash);
-  if (!flash)
-  {
-    for (int i = 0; i < 6; i++)
-    {
-      digitalWrite(LED_BUILTIN, HIGH);
-      delay(100);
-      digitalWrite(LED_BUILTIN, LOW);
-      delay(100);
-    }
-  }
-  if (flash)
-  {
-    for (int i = 0; i < 3; i++)
-    {
-      digitalWrite(LED_BUILTIN, HIGH);
-      delay(500);
-      digitalWrite(LED_BUILTIN, LOW);
-      delay(100);
-    }
-  }
-}
-
 void sendPictureToMQTT(const uint8_t *buf, uint32_t len)
 {
   Serial.println("Sending picture...");
@@ -173,7 +125,7 @@ void sendPictureToMQTT(const uint8_t *buf, uint32_t len)
   }
   else
   {
-    mqttClient.publish("camera/picture", buf, len, false);
+    mqttClient.publish("camera/picture", buf, len, false);             
   }
 }
 
@@ -276,15 +228,15 @@ void loop()
   if (digitalRead(12) == HIGH) {
     
     if(coolDownBell == 0) {
-       timer2 = millis();                        //keep current time
-       coolDownBell = 3;                         //Press bell 2 second
-       mqttClient.publish("bell/gate1", "true"); //publish
+       timer2 = millis();                                           // keep current time
+       coolDownBell = 3;                                            // coolDownBell 3 second
+       mqttClient.publish("bell/gate1", "true");                    // ring bell 
     }
 
     if (coolDownTakePicture == 0) {
-      timer1 = millis();                         //keep current time
-      coolDownTakePicture = 10;                  //coolDownTakePicture 10 second
-      take_picture();                            //capture
+      timer1 = millis();                                            // keep current time
+      coolDownTakePicture = 10;                                     // coolDownTakePicture 10 second
+      take_picture();                                               // capture
     }
   }
 
@@ -292,16 +244,16 @@ void loop()
     timer1 += 1000;
     timer1 = millis();
     coolDownTakePicture--;
-    Serial.print("coolDownTakePicture ");
-    Serial.println(coolDownTakePicture);
+    //Serial.print("coolDownTakePicture ");
+    //Serial.println(coolDownTakePicture);
   }
 
   if (millis() - timer2 >= 1000 && coolDownBell > 0) {
     timer2 += 1000;
     timer2 = millis();
     coolDownBell--;
-    Serial.print("coolDownBell ");
-    Serial.println(coolDownBell);
+    //Serial.print("coolDownBell ");
+    //Serial.println(coolDownBell);
   }
 
   mqttClient.loop();
