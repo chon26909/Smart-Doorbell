@@ -14,19 +14,19 @@ def face_reG():
     image_of_boss = face_recognition.load_image_file('./Dataset/Boss.jpg')
     boss_face_encoding = face_recognition.face_encodings(image_of_boss)[0]
 
-    #image_of_toy = face_recognition.load_image_file('./Dataset/Toy.jpg')
-    #toy_face_encoding = face_recognition.face_encodings(image_of_toy)
+    image_of_toy = face_recognition.load_image_file('./Dataset/thianrawit.jpg')
+    toy_face_encoding = face_recognition.face_encodings(image_of_toy)[0]
 
     known_face_encodings =[
         chon_face_encoding, 
         boss_face_encoding,
-       # toy_face_encoding
+        toy_face_encoding
         ]
 
     known_face_name = [
         "Chon", 
         "Boss",
-        #"TOY"
+        "TOY"
     ]
 
     # Load test Image
