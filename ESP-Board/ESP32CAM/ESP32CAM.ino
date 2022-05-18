@@ -19,14 +19,15 @@ bool flash;                                 // ไฟ flash
 const char *ssid = "Chon";                  // ssid WIFI
 const char *password = "0837224629";        // password WIFI
 
-// MQTT
-WiFiClient wifiClient;
-PubSubClient mqttClient(wifiClient);
 
 // MQTT config
 const char *mqttServer = "192.168.1.150";   // mqtt server host
 const int mqttPort = 1883;                  // mqtt server port
 const int MAX_PAYLOAD = 60000;              // mqtt max patload
+
+// MQTT
+WiFiClient wifiClient;
+PubSubClient mqttClient(wifiClient);
 
 void startCameraServer();
 
@@ -112,11 +113,11 @@ void take_picture()
 
   Serial.println("Picture taken");
   digitalWrite(LED_BUILTIN, LOW);
-  sendPictureToMQTT(fb->buf, fb->len);
-  esp_camera_fb_return(fb); // must be used to free the memory allocated by esp_camera_fb_get().
+  sendPictureToMQTTBroker(fb->buf, fb->len);
+  esp_camera_fb_return(fb); // free the memory allocated by esp_camera_fb_get().
 }
 
-void sendPictureToMQTT(const uint8_t *buf, uint32_t len)
+void sendPictureToMQTTBroker(const uint8_t *buf, uint32_t len)
 {
   Serial.println("Sending picture...");
   if (len > MAX_PAYLOAD)
@@ -213,9 +214,9 @@ void setup()
   setupMQTT();
   if (!mqttClient.connected())
     reconnect();
-
-  pinMode(12, INPUT);
-  pinMode(LED_BUILTIN, OUTPUT); // Define Flash as an output
+  
+  pinMode(12, INPUT);                    // pin connect button take picture
+  pinMode(LED_BUILTIN, OUTPUT);          // Define Flash as an output
 
   mqttClient.setBufferSize(MAX_PAYLOAD); // This is the maximum payload length
   mqttClient.subscribe("camera/capture");
@@ -225,18 +226,18 @@ void loop()
 {
   if (!mqttClient.connected()) reconnect();
                                                                                                                                                                                                
-  if (digitalRead(12) == HIGH) {
+  if (digitalRead(12) == HIGH) {                          // guest press button
     
     if(coolDownBell == 0) {
-       timer2 = millis();                                           // keep current time
-       coolDownBell = 3;                                            // coolDownBell 3 second
-       mqttClient.publish("bell/gate1", "true");                    // ring bell 
+       timer2 = millis();                                 // keep current time
+       coolDownBell = 3;                                  // coolDownBell 3 second
+       mqttClient.publish("bell/gate1", "true");          // ring bell 
     }
 
     if (coolDownTakePicture == 0) {
-      timer1 = millis();                                            // keep current time
-      coolDownTakePicture = 10;                                     // coolDownTakePicture 10 second
-      take_picture();                                               // capture
+      timer1 = millis();                                  // keep current time
+      coolDownTakePicture = 10;                           // coolDownTakePicture 10 second
+      take_picture();                                     // capture
     }
   }
 
